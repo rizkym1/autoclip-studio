@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@source "../views";
+@source "../js";
+
+@theme {
+    --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+}
+
+:root {
+    --bg-base: #09090b;
+    --bg-surface: #121215;
+    --bg-elevated: #18181b;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+}
+
+body {
+    background-color: #09090b !important;
+    color: #f4f4f5;
+    font-family: var(--font-sans);
+    min-height: 100vh;
+}
+
+/* 21st.dev / Craft UI Precision Cards */
+.craft-card {
+    background-color: rgba(18, 18, 21, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 8px 32px -8px rgba(0, 0, 0, 0.5);
+    border-radius: 14px;
+}
+
+.craft-card-interactive {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.craft-card-interactive:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 12px 40px -10px rgba(0, 0, 0, 0.7);
+}
+
+/* Precision Command Input */
+.craft-input {
+    background-color: rgba(14, 14, 17, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    transition: all 0.15s ease;
+}
+
+.craft-input:focus {
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    outline: none;
+}
+
+/* Solid Monochrome Buttons */
+.craft-btn-primary {
+    background-color: #fafafa;
+    color: #09090b;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+
+.craft-btn-primary:hover:not(:disabled) {
+    background-color: #e4e4e7;
+    transform: translateY(-0.5px);
+}
+
+.craft-btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    background-color: #d4d4d8;
+}
+
+.craft-btn-secondary {
+    background-color: #18181b;
+    color: #e4e4e7;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 500;
+    transition: all 0.15s ease;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+.craft-btn-secondary:hover:not(:disabled) {
+    background-color: #27272a;
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+/* Minimalist Range Slider */
+input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 6px;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    background: #27272a;
+    border-radius: 4px;
+    height: 6px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: #fafafa;
+    border: 2px solid #18181b;
+    cursor: pointer;
+    margin-top: -5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background: #ffffff;
+}
+
+/* Minimal Scrollbars */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+}
+
+/* Subtle dot badge glow */
+.dot-indicator {
+    box-shadow: 0 0 8px currentColor;
+}

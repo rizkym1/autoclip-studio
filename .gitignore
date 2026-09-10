@@ -1,0 +1,62 @@
+# Logs & Environment
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.env.*.local
+.phpactor.json
+.phpunit.result.cache
+
+# IDEs
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+Thumbs.db
+
+# Dependencies & Build
+/node_modules
+/vendor
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/auth.json
+
+# Large Video Files & Temporary Processing
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+.tmp/
+trending_videos.json
+apply_mlbb_p13.py
+
+# Laravel Storage & Project Videos
+/storage/*.key
+/storage/pail
+/storage/app/public/projects/*
+!/storage/app/public/projects/.gitkeep
+/storage/app/public/test/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Database
+/database/*.sqlite
+/database/*.sqlite-journal
