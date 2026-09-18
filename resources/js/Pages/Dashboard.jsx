@@ -66,6 +66,7 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
     const [isRenderingCustom, setIsRenderingCustom] = useState(false);
     const [renderingClipIds, setRenderingClipIds] = useState(new Set());
     const [renderingMemeClipIds, setRenderingMemeClipIds] = useState(new Set());
+    const [clipMemeIntensity, setClipMemeIntensity] = useState({}); // { [clipId]: 'santai' | 'rame' | 'barbar' }
 
     // Video Player Ref
     const videoRef = useRef(null);
@@ -356,10 +357,16 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
         }
     };
 
-    // Render clip with Auto-Meme & SFX
-    const handleRenderMemeClip = async (clipId, ratio = '9:16') => {
+    // Render clip with Auto-Meme, SFX & Screen Shake
+    const handleRenderMemeClip = async (clipId, ratio = '9:16', overrideIntensity = null) => {
+        const intensity = overrideIntensity || clipMemeIntensity[clipId] || 'rame';
+        const intensityLabels = {
+            santai: 'Santai ☕',
+            rame: 'Rame 🔥',
+            barbar: 'Bar-Bar 🤯'
+        };
         setRenderingMemeClipIds(prev => new Set(prev).add(clipId));
-        showToast(`Injecting viral memes, SFX & punch-zoom (${ratio})... ✨`, 'info');
+        showToast(`Injecting memes (${intensityLabels[intensity] || intensity}), SFX & screen shake (${ratio})... ✨`, 'info');
         try {
             const res = await fetch(`/api/clips/${clipId}/render-meme`, {
                 method: 'POST',
@@ -367,7 +374,10 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ aspect_ratio: ratio })
+                body: JSON.stringify({ 
+                    aspect_ratio: ratio,
+                    intensity: intensity
+                })
             });
 
             let data;
@@ -1090,11 +1100,11 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
                                                     </div>
 
                                                     {/* Auto-Meme & SFX Timeline Badges */}
-                                                    <div className="rounded-lg bg-gradient-to-r from-amber-500/10 via-amber-950/20 to-orange-500/10 border border-amber-500/30 p-2.5 flex flex-col gap-1.5">
+                                                    <div className="rounded-lg bg-gradient-to-r from-amber-500/10 via-amber-950/20 to-orange-500/10 border border-amber-500/30 p-2.5 flex flex-col gap-2">
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-1.5 text-xs text-amber-300 font-medium">
                                                                 <Flame className="w-3.5 h-3.5 text-amber-400" />
-                                                                <span>Auto-Meme & SFX Sync ✨</span>
+                                                                <span>Auto-Meme Soundboard & Camera Sync ✨</span>
                                                             </div>
                                                             <span className="text-[10px] text-amber-400/80 font-mono">
                                                                 {clip.meme_cues && clip.meme_cues.length > 0 ? `${clip.meme_cues.length} Cue Siap` : 'Auto Punch-Zoom & SFX'}
@@ -1104,7 +1114,23 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
                                                         {clip.meme_cues && clip.meme_cues.length > 0 ? (
                                                             <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                                                                 {clip.meme_cues.map((cue, cueIdx) => {
-                                                                    const icon = cue.effect === 'vine_boom' ? '💥' : cue.effect === 'bruh' ? '🗿' : cue.effect === 'bonk' ? '🔨' : cue.effect === 'cricket' ? '🦗' : cue.effect === 'anime_wow' ? '✨' : '🎬';
+                                                                    const memeIcons = {
+                                                                        vine_boom: '💥',
+                                                                        metal_pipe: '🛢️',
+                                                                        taco_bell: '🔔',
+                                                                        bonk: '🔨',
+                                                                        bruh: '🗿',
+                                                                        emotional_damage: '💔',
+                                                                        windows_error: '💻',
+                                                                        fart_reverb: '💨',
+                                                                        huh: '❓',
+                                                                        run: '🏃',
+                                                                        laugh_wheeze: '🤣',
+                                                                        cricket: '🦗',
+                                                                        anime_wow: '✨',
+                                                                        directed_by: '🎬'
+                                                                    };
+                                                                    const icon = memeIcons[cue.effect] || '🎬';
                                                                     return (
                                                                         <span 
                                                                             key={cueIdx} 
@@ -1115,15 +1141,45 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
                                                                             <span className="capitalize">{cue.effect.replace('_', ' ')}</span>
                                                                             <span className="text-zinc-400 font-sans">@{cue.time}s</span>
                                                                             {cue.punch_zoom && <span className="text-[9px] text-amber-400 font-bold">🔍 Zoom</span>}
+                                                                            {cue.screen_shake && <span className="text-[9px] text-orange-400 font-bold">📳 Shake</span>}
                                                                         </span>
                                                                     );
                                                                 })}
                                                             </div>
                                                         ) : (
                                                             <p className="text-[11px] text-zinc-400 font-sans">
-                                                                Efek suara meme viral & punch zoom kamera otomatis tersinkronisasi saat dirender.
+                                                                Efek suara meme viral, punch zoom & screen shake kamera otomatis tersinkronisasi saat dirender.
                                                             </p>
                                                         )}
+
+                                                        {/* Meme Intensity Presets */}
+                                                        <div className="flex items-center justify-between pt-1.5 border-t border-amber-500/20 text-xs">
+                                                            <span className="text-[11px] text-amber-200/90 font-medium">Level Keramaian:</span>
+                                                            <div className="inline-flex rounded-lg bg-zinc-900/90 p-0.5 border border-zinc-800">
+                                                                {[
+                                                                    { id: 'santai', label: 'Santai ☕', hint: '2 Meme (Hook & Outro)' },
+                                                                    { id: 'rame', label: 'Rame 🔥', hint: '4-6 Meme (Hype Multi-Drop)' },
+                                                                    { id: 'barbar', label: 'Bar-Bar 🤯', hint: '7-10 Meme + Heavy Shake' }
+                                                                ].map(preset => {
+                                                                    const isSelected = (clipMemeIntensity[clip.id] || 'rame') === preset.id;
+                                                                    return (
+                                                                        <button
+                                                                            key={preset.id}
+                                                                            type="button"
+                                                                            title={preset.hint}
+                                                                            onClick={() => setClipMemeIntensity(prev => ({ ...prev, [clip.id]: preset.id }))}
+                                                                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                                                                                isSelected 
+                                                                                    ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm' 
+                                                                                    : 'text-zinc-400 hover:text-zinc-200'
+                                                                            }`}
+                                                                        >
+                                                                            {preset.label}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
                                                     </div>
 
                                                     {/* Card Actions */}

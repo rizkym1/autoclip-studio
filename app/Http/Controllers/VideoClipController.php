@@ -178,14 +178,16 @@ class VideoClipController extends Controller
         $request->validate([
             'aspect_ratio' => 'nullable|in:9:16,16:9,1:1',
             'custom_cues' => 'nullable|array',
+            'intensity' => 'nullable|in:santai,rame,barbar',
         ]);
 
         $clip = VideoClip::findOrFail($clipId);
         $aspectRatio = $request->input('aspect_ratio', $clip->aspect_ratio ?: '9:16');
         $customCues = $request->input('custom_cues', []);
+        $intensity = $request->input('intensity', 'rame');
 
         try {
-            $result = $service->renderMemeClip($clip, $aspectRatio, $customCues);
+            $result = $service->renderMemeClip($clip, $aspectRatio, $customCues, $intensity);
             return response()->json([
                 'success' => true,
                 'clip' => $clip->fresh()

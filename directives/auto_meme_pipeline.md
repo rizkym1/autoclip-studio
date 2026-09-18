@@ -31,24 +31,34 @@ graph TD
 ```
 
 ### Tahap 1: Bank Aset Meme Lokal (`execution/setup_meme_assets.py`)
-* Mengelola bank suara viral standar:
-  - `vine_boom.wav`: Dentuman bass shockwave untuk momen kaget, punchline, atau plot twist.
+* Mengelola bank suara viral lengkap (14 SFX):
+  - `vine_boom.wav`: Dentuman sub-bass shockwave untuk momen kaget, punchline, atau plot twist.
+  - `metal_pipe.wav`: Suara pipa besi jatuh bergema keras untuk momen konyol atau hantaman tiba-tiba.
+  - `taco_bell.wav`: Dentang lonceng bass raksasa untuk momen sial atau karma instan.
+  - `bonk.wav`: Efek pukulan kartun kayu untuk momen fail atau kepleset ucapan.
   - `bruh.wav`: Suara "bruh" rendah untuk momen blunder atau kebingungan.
-  - `bonk.wav`: Efek pukulan kartun untuk momen fail, kepleset ucapan, atau tertimpa nasib sial.
+  - `emotional_damage.wav`: Efek viral suara "emotional damage!" untuk roasting pedas.
+  - `windows_error.wav`: Nada chord error Windows XP untuk momen gagal mikir / lag otak.
+  - `fart_reverb.wav`: Efek bass boost reverb untuk momen shitpost puncak.
+  - `huh.wav`: Suara kebingungan "huh?" bernada naik.
+  - `run.wav`: Efek EDM drop drumroll "Run!" untuk momen panik atau dikejar musuh.
+  - `laugh_wheeze.wav`: Ketawa ngakak sesak napas untuk momen komedi pecah.
   - `cricket.wav`: Suara jangkrik untuk keheningan canggung (*awkward silence*).
   - `anime_wow.wav`: Efek kemilau fairy/anime untuk momen epic, killstreak, atau pencapaian keren.
   - `directed_by.wav`: Melodi outro komedi Robert B. Weide untuk akhir klip blunder.
 
-### Tahap 2: The Brain — Deteksi Timestamp Meme
-* **Klip dengan Dialog (Vlog, Podcast, Tanya Jawab)**:
-  - Di-parse oleh Gemini Flash di `execution/ai_highlight_extractor.py`.
-  - Menganalisis transkrip teks dan menentukan `meme_cues` berbasis makna kalimat.
-* **Klip Non-Dialog / Gaming (Mobile Legends, Gameplay, Montase)**:
-  - Di-parse oleh detektor energi audio di `execution/local_video_analyzer.py`.
-  - Menganalisis lonjakan volume audio (*volume spikes*) untuk killstreak/hype (Maniac/Savage), serta lembah keheningan (*silence valleys*) untuk efek canggung/bruh.
+### Tahap 2: The Brain — Deteksi Multi-Peak Timestamp & Presets
+* **Preset Tingkat Keramaian Meme (`--intensity`)**:
+  - `santai`: 2 cues (Hook awal & outro punchline). Cocok untuk podcast atau edukasi santai.
+  - `rame`: 4–6 cues (Multi-peak hype drops + punchline + dynamic zoom). Cocok untuk gameplay reguler & reaction.
+  - `barbar`: 7–10 cues (Rapid-fire soundboard + heavy screen shake pada setiap impact). Cocok untuk montage MLBB, Savage, atau fast-paced TikTok shitpost.
+* **Deteksi Cues**:
+  - **AI Dialog (Gemini Flash)**: Menganalisis kalimat, roasting, punchlines, dan momen klimaks narasi.
+  - **Deteksi Audio Spikes (Deterministic RMS)**: Menemukan titik-titik puncak audio teriakan/ledakan dan merotasi SFX berbobot berat (`vine_boom`, `metal_pipe`, `taco_bell`) dengan `screen_shake: true`.
 
 ### Tahap 3: The Muscle — FFmpeg Video Meme Engine (`execution/video_meme_editor.py`)
 * Menggabungkan video vertikal 9:16 dengan:
+  - **Camera Screen Shake (Layar Getar)**: Menggunakan filter crop statis `crop=w=1040:h=1880:x='20+20*sin(t*65)':y='20+20*cos(t*65)',scale=1080:1920` yang digabungkan via `overlay` berwaktu `enable='between(t, s, e)'` untuk getaran kamera instan saat ledakan/bass drop.
   - **Dynamic Punch-Zoom**: Menggunakan branch `split` + `crop` + `scale` + `overlay` dengan filter waktu `enable='between(t, start, end)'`.
   - **Multi-channel SFX Mix**: Menggunakan `adelay` untuk menempatkan masing-masing SFX pada milidetik yang tepat, digabungkan dengan `amix`.
 * Output disimpan sebagai file MP4 beresolusi tinggi dengan kompresi `veryfast` dan audio AAC.

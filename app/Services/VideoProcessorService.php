@@ -327,7 +327,7 @@ class VideoProcessorService
     /**
      * Render a clip with auto-meme sound effects & dynamic punch-zoom
      */
-    public function renderMemeClip(VideoClip $clip, string $aspectRatio = '9:16', array $customCues = []): array
+    public function renderMemeClip(VideoClip $clip, string $aspectRatio = '9:16', array $customCues = [], string $intensity = 'rame'): array
     {
         $project = $clip->project;
         $projectDir = storage_path("app/public/projects/{$project->id}");
@@ -358,13 +358,16 @@ class VideoProcessorService
         // Tentukan meme timeline yang akan digunakan
         $cues = !empty($customCues) ? $customCues : ($clip->meme_cues ?: []);
         if (empty($cues)) {
+            $dur = (float) $clip->duration;
             $cues = [
-                ['time' => 2.0, 'effect' => 'vine_boom', 'punch_zoom' => true, 'duration' => 0.8],
-                ['time' => round(min($clip->duration * 0.7, 20.0), 1), 'effect' => 'bonk', 'punch_zoom' => true, 'duration' => 0.5]
+                ['time' => 1.5, 'effect' => 'vine_boom', 'punch_zoom' => true, 'screen_shake' => true, 'duration' => 0.6],
+                ['time' => round(min($dur * 0.35, 12.0), 1), 'effect' => 'metal_pipe', 'punch_zoom' => true, 'screen_shake' => true, 'duration' => 0.5],
+                ['time' => round(min($dur * 0.65, 22.0), 1), 'effect' => 'taco_bell', 'punch_zoom' => true, 'screen_shake' => true, 'duration' => 0.5],
+                ['time' => round(min($dur * 0.88, 30.0), 1), 'effect' => 'laugh_wheeze', 'punch_zoom' => false, 'screen_shake' => false, 'duration' => 0.5]
             ];
         }
 
-        $clipFilename = "clip_{$clip->id}_meme_{$aspectRatio}_" . time() . ".mp4";
+        $clipFilename = "clip_{$clip->id}_meme_{$aspectRatio}_{$intensity}_" . time() . ".mp4";
         $clipFilename = str_replace(':', '-', $clipFilename);
         $outputFile = "{$projectDir}/{$clipFilename}";
         $timelineJsonFile = "{$projectDir}/timeline_meme_{$clip->id}.json";
@@ -385,6 +388,7 @@ class VideoProcessorService
             '--aspect-ratio', $aspectRatio,
             '--meme-timeline', $timelineJsonFile,
             '--sfx-dir', $sfxDir,
+            '--intensity', $intensity,
         ], null, $this->getProcessEnv());
 
         $process->setTimeout(300);

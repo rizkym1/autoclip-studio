@@ -104,7 +104,14 @@ For each clip:
 7. "discussion_question": Engaging question based on this clip.
 8. "hashtags": 4-6 hashtags tailored to the topic.
 
-9. "meme_cues": Array of 1 to 3 viral meme sound effect & punch zoom cues for this clip. Available effects: "vine_boom", "bonk", "bruh", "cricket", "anime_wow", "directed_by". Each cue has "time" (relative offset in seconds from start_time, e.g. 4.5), "effect", "punch_zoom" (boolean), and "reason".
+9. "meme_cues": Array of 3 to 6 viral meme sound effect & dynamic camera cues spaced throughout the clip (every ~4-7 seconds).
+Available effects: "vine_boom", "metal_pipe", "taco_bell", "bonk", "bruh", "emotional_damage", "windows_error", "fart_reverb", "huh", "run", "laugh_wheeze", "cricket", "anime_wow", "directed_by".
+Each cue has:
+- "time": relative offset in seconds from start_time (e.g. 2.5)
+- "effect": sound effect name
+- "punch_zoom": boolean
+- "screen_shake": boolean (set true on big shock / metal pipe / bass drop)
+- "reason": brief explanation
 
 Transcript:
 {transcript_text[:14000]}
@@ -125,16 +132,32 @@ Respond ONLY with a JSON array:
     "hashtags": ["#shorts", "#viral", "#mitos", "#kesehatan", "#fyp"],
     "meme_cues": [
       {{
-        "time": 3.5,
+        "time": 2.5,
         "effect": "vine_boom",
         "punch_zoom": true,
+        "screen_shake": true,
         "reason": "Momen dokter kaget pas ditanya soal micin"
       }},
       {{
-        "time": 25.0,
-        "effect": "bonk",
+        "time": 12.0,
+        "effect": "huh",
         "punch_zoom": false,
-        "reason": "Momen fakta kocak terungkap"
+        "screen_shake": false,
+        "reason": "Reaksi bingung saat mendengar mitos lama"
+      }},
+      {{
+        "time": 24.0,
+        "effect": "metal_pipe",
+        "punch_zoom": true,
+        "screen_shake": true,
+        "reason": "Momen fakta kocak terungkap dan bikin syok"
+      }},
+      {{
+        "time": 36.0,
+        "effect": "laugh_wheeze",
+        "punch_zoom": false,
+        "screen_shake": false,
+        "reason": "Tawa bersama di penutup percakapan"
       }}
     ]
   }}
@@ -161,11 +184,14 @@ Respond ONLY with a JSON array:
             hook = clip.get('hook', clip.get('title', ''))
             clip['caption'] = build_anti_copyright_caption(clip['title'], hook, synopsis, disc_q, channel_name, video_title)
             
-            # Ensure meme_cues exists
-            if 'meme_cues' not in clip or not clip['meme_cues']:
+            # Ensure rich meme_cues exists
+            dur = float(clip.get('duration', 35.0))
+            if 'meme_cues' not in clip or not clip['meme_cues'] or len(clip['meme_cues']) < 2:
                 clip['meme_cues'] = [
-                    {'time': 2.5, 'effect': 'vine_boom', 'punch_zoom': True, 'reason': 'Hook awal pembuka video'},
-                    {'time': round(min(clip.get('duration', 30.0) * 0.7, 20.0), 1), 'effect': 'bonk', 'punch_zoom': True, 'reason': 'Klimaks momen'}
+                    {'time': 1.5, 'effect': 'vine_boom', 'punch_zoom': True, 'screen_shake': True, 'reason': 'Hook awal pembuka'},
+                    {'time': round(min(dur * 0.35, 12.0), 1), 'effect': 'metal_pipe', 'punch_zoom': True, 'screen_shake': True, 'reason': 'Momen blunder / aksi'},
+                    {'time': round(min(dur * 0.65, 22.0), 1), 'effect': 'taco_bell', 'punch_zoom': True, 'screen_shake': True, 'reason': 'Momen klimaks'},
+                    {'time': round(min(dur * 0.88, 30.0), 1), 'effect': 'laugh_wheeze', 'punch_zoom': False, 'screen_shake': False, 'reason': 'Ending kocak'}
                 ]
 
         return parsed

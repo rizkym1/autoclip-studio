@@ -24,10 +24,12 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
         pass
 
 def detect_audio_meme_peaks(wav_path, duration):
-    """Calculates RMS audio energy envelope and finds hype spikes and awkward silence valleys"""
+    """Calculates RMS audio energy envelope and detects 4-8 multi-peak action moments & comedic valleys"""
     default_cues = [
-        {'time': 2.0, 'effect': 'vine_boom', 'punch_zoom': True, 'reason': 'Hook awal video'},
-        {'time': round(min(duration * 0.7, 25.0), 1), 'effect': 'bonk', 'punch_zoom': True, 'reason': 'Momen klimaks / kejutan'}
+        {'time': 1.5, 'effect': 'vine_boom', 'punch_zoom': True, 'screen_shake': True, 'reason': 'Hook awal video'},
+        {'time': round(min(duration * 0.35, 12.0), 1), 'effect': 'metal_pipe', 'punch_zoom': True, 'screen_shake': True, 'reason': 'Momen blunder / aksi'},
+        {'time': round(min(duration * 0.65, 22.0), 1), 'effect': 'taco_bell', 'punch_zoom': True, 'screen_shake': True, 'reason': 'Momen klimaks / hit'},
+        {'time': round(min(duration * 0.85, 28.0), 1), 'effect': 'laugh_wheeze', 'punch_zoom': False, 'screen_shake': False, 'reason': 'Ending lucu'}
     ]
     if not os.path.exists(wav_path):
         return default_cues
@@ -63,46 +65,93 @@ def detect_audio_meme_peaks(wav_path, duration):
             return default_cues
 
         avg_rms = sum(rms_values) / len(rms_values)
-        cues = []
         step = 0.25
-        best_peak_idx = -1
-        best_peak_val = avg_rms * 1.35
-        
-        for idx, val in enumerate(rms_values):
-            t = idx * step
-            if t < 1.0 or t > (duration - 1.0):
-                continue
-            if val > best_peak_val:
-                best_peak_val = val
-                best_peak_idx = idx
+        cues = []
 
-        if best_peak_idx > 0:
-            peak_t = round(best_peak_idx * step, 1)
-            cues.append({
-                'time': peak_t,
-                'effect': 'vine_boom',
-                'punch_zoom': True,
-                'reason': f'Lonjakan aksi/audio di detik {peak_t}s'
-            })
+        # Always start with an energetic hook at ~1.2s - 2.0s
+        cues.append({
+            'time': 1.5,
+            'effect': 'vine_boom',
+            'punch_zoom': True,
+            'screen_shake': True,
+            'reason': 'Hook awal pembuka video'
+        })
 
-        for idx, val in enumerate(rms_values):
+        # Sound rotation pools
+        heavy_hits = ['metal_pipe', 'taco_bell', 'vine_boom', 'emotional_damage', 'bonk']
+        hype_sounds = ['run', 'anime_wow', 'bonk', 'emotional_damage']
+        awkward_sounds = ['huh', 'windows_error', 'bruh', 'cricket']
+        ending_sounds = ['laugh_wheeze', 'fart_reverb', 'directed_by']
+
+        heavy_idx = 0
+        hype_idx = 0
+        awkward_idx = 0
+
+        # Scan for peaks with minimum 2.5s separation
+        last_cue_time = 1.5
+        for idx in range(2, len(rms_values) - 2):
             t = idx * step
-            if t < 2.0 or t > (duration - 2.0):
+            if t < 3.0 or t > (duration - 2.0):
                 continue
-            if all(abs(t - c['time']) > 3.0 for c in cues):
-                if val < (avg_rms * 0.35) and avg_rms > 0.02:
+            if (t - last_cue_time) < 2.5:
+                continue
+
+            val = rms_values[idx]
+            prev_val = rms_values[idx - 1]
+            next_val = rms_values[idx + 1]
+
+            # Local maximum peak
+            if val > prev_val and val > next_val:
+                if val > (avg_rms * 1.35):
+                    # Heavy action peak -> Screen Shake + Punch Zoom
+                    sound = heavy_hits[heavy_idx % len(heavy_hits)]
+                    heavy_idx += 1
                     cues.append({
                         'time': round(t, 1),
-                        'effect': 'bruh',
-                        'punch_zoom': False,
-                        'reason': f'Jeda hening/canggung di detik {round(t, 1)}s'
+                        'effect': sound,
+                        'punch_zoom': True,
+                        'screen_shake': True,
+                        'reason': f'Lonjakan aksi/audio heboh di {round(t, 1)}s'
                     })
-                    break
+                    last_cue_time = t
+                elif val > (avg_rms * 1.05):
+                    # Medium action peak
+                    sound = hype_sounds[hype_idx % len(hype_sounds)]
+                    hype_idx += 1
+                    cues.append({
+                        'time': round(t, 1),
+                        'effect': sound,
+                        'punch_zoom': True,
+                        'screen_shake': False,
+                        'reason': f'Momen seru di {round(t, 1)}s'
+                    })
+                    last_cue_time = t
 
-        if not cues:
-            return default_cues
+            # Awkward silence / sudden drop
+            elif val < (avg_rms * 0.35) and avg_rms > 0.02 and (t - last_cue_time) >= 3.5:
+                sound = awkward_sounds[awkward_idx % len(awkward_sounds)]
+                awkward_idx += 1
+                cues.append({
+                    'time': round(t, 1),
+                    'effect': sound,
+                    'punch_zoom': False,
+                    'screen_shake': False,
+                    'reason': f'Jeda hening/canggung di {round(t, 1)}s'
+                })
+                last_cue_time = t
 
-        return cues
+        # Add ending outro meme if clip is longer than 15s and gap allows
+        if duration >= 15.0 and (duration - last_cue_time) >= 2.5:
+            cues.append({
+                'time': round(duration - 1.8, 1),
+                'effect': ending_sounds[0],
+                'punch_zoom': False,
+                'screen_shake': False,
+                'reason': 'Ending penutup kocak'
+            })
+
+        cues.sort(key=lambda x: x['time'])
+        return cues if len(cues) >= 2 else default_cues
     except Exception as e:
         print(f"Audio peak detection notice: {e}", file=sys.stderr)
         return default_cues

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Tier 3 Muscle: Deterministic Video Meme & SFX Editor
-Orchestrates FFmpeg filter complexes to inject viral sound effects and dynamic punch-zooms
-with millisecond-level precision on short-form videos (9:16, 16:9, 1:1).
+Tier 3 Muscle: Deterministic High-Density Video Meme & SFX Editor
+Orchestrates FFmpeg filter complexes to inject viral sound effects, dynamic punch-zooms,
+and camera screen shakes with millisecond precision on short-form videos (9:16, 16:9, 1:1).
+Supports multi-level intensity: santai, rame, and barbar.
 """
 
 import os
@@ -11,6 +12,10 @@ import json
 import argparse
 import subprocess
 import imageio_ffmpeg
+
+HEAVY_SHAKE_SOUNDS = {
+    'vine_boom', 'metal_pipe', 'taco_bell', 'fart_reverb', 'emotional_damage', 'bonk'
+}
 
 def check_has_audio(input_file, ffmpeg_exe):
     """Checks if the source video has an active audio stream"""
@@ -24,7 +29,6 @@ def check_has_audio(input_file, ffmpeg_exe):
             '-'
         ]
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        # If output contains "Output #0, null" and stream #0:1(und): Audio or similar
         return "Audio:" in res.stderr
     except Exception:
         return True
@@ -36,7 +40,8 @@ def edit_video_with_memes(
     output_file,
     aspect_ratio='9:16',
     meme_cues=None,
-    sfx_dir=None
+    sfx_dir=None,
+    intensity='rame'
 ):
     if not os.path.exists(input_video):
         print(json.dumps({'error': f"Input video not found: {input_video}"}), file=sys.stderr)
@@ -74,11 +79,17 @@ def edit_video_with_memes(
         elif isinstance(meme_cues, list):
             cues = meme_cues
 
+    # Filter cues based on intensity
+    if intensity == 'santai' and len(cues) > 3:
+        # Keep only hook and climax
+        cues = [cues[0], cues[-1]]
+    elif intensity == 'rame' and len(cues) > 6:
+        cues = cues[:6]
+
     # Validate and normalize cues within clip range (relative 0.0 to duration)
     valid_cues = []
     for c in cues:
         raw_t = float(c.get('time', c.get('offset', c.get('timestamp', 0.0))))
-        # If timestamp is absolute (relative to whole source video), convert to relative
         if raw_t >= start_sec and raw_t <= end_sec:
             rel_t = raw_t - start_sec
         elif raw_t >= 0.0 and raw_t <= duration:
@@ -86,19 +97,23 @@ def edit_video_with_memes(
         else:
             continue
 
-        effect = c.get('effect', c.get('sound', 'vine_boom')).lower()
+        effect = str(c.get('effect', c.get('sound', 'vine_boom'))).lower()
         if not effect.endswith('.wav') and not effect.endswith('.mp3'):
             sound_file = f"{effect}.wav"
         else:
             sound_file = effect
 
         sound_path = os.path.join(sfx_dir, sound_file)
-        # Fallback to vine_boom if sound doesn't exist
         if not os.path.exists(sound_path):
             sound_path = os.path.join(sfx_dir, 'vine_boom.wav')
+            sound_file = 'vine_boom.wav'
+            effect = 'vine_boom'
 
         punch_zoom = bool(c.get('punch_zoom', True))
-        zoom_dur = float(c.get('duration', 0.8))
+        
+        # Screen shake: explicitly passed or auto-enabled for heavy bass/impact
+        screen_shake = bool(c.get('screen_shake', effect in HEAVY_SHAKE_SOUNDS))
+        zoom_dur = float(c.get('duration', 0.65 if intensity == 'barbar' else 0.8))
         vol = float(c.get('volume', 1.0))
 
         valid_cues.append({
@@ -106,9 +121,13 @@ def edit_video_with_memes(
             'sound_path': sound_path,
             'sound_name': effect,
             'punch_zoom': punch_zoom,
+            'screen_shake': screen_shake,
             'zoom_duration': zoom_dur,
             'volume': vol
         })
+
+    # Sort cues chronologically
+    valid_cues.sort(key=lambda x: x['time'])
 
     # Group sound inputs to avoid opening the same sound file multiple times
     unique_sounds = {}
@@ -143,7 +162,7 @@ def edit_video_with_memes(
     # Construct video filter complex
     filter_parts = []
 
-    # 1. Aspect Ratio formatting
+    # 1. Aspect Ratio Canvas
     if aspect_ratio == '9:16':
         filter_parts.append(
             "[0:v]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=8:2,scale=1080:1920:flags=fast_bilinear[bg]"
@@ -164,44 +183,66 @@ def edit_video_with_memes(
             "[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[base_v]"
         )
 
-    # 2. Dynamic Punch-Zoom
-    zoom_cues = [c for c in valid_cues if c['punch_zoom']]
-    if zoom_cues:
-        # Construct enable conditions: between(t, s, e) + between(...)
-        enable_conditions = []
-        for zc in zoom_cues:
-            zs = zc['time']
-            ze = min(duration, zs + zc['zoom_duration'])
-            enable_conditions.append(f"between(t\\,{zs:.2f}\\,{ze:.2f})")
+    # 2. Dynamic Camera Effects (Punch Zoom & Screen Shake)
+    zoom_cues = [c for c in valid_cues if c['punch_zoom'] and not c['screen_shake']]
+    shake_cues = [c for c in valid_cues if c['screen_shake']]
 
-        enable_expr = "+".join(enable_conditions)
-        filter_parts.append("[base_v]split=2[v_norm][to_zoom]")
-        # 1.28x punch zoom cropped from center
-        filter_parts.append(
-            "[to_zoom]crop=in_w*0.78:in_h*0.78:(in_w-out_w)/2:(in_h-out_h)/2,scale=1080:1920[v_zoomed]" if aspect_ratio == '9:16' else
-            "[to_zoom]crop=in_w*0.78:in_h*0.78:(in_w-out_w)/2:(in_h-out_h)/2,scale=1920:1080[v_zoomed]"
-        )
-        filter_parts.append(
-            f"[v_norm][v_zoomed]overlay=0:0:enable={enable_expr}[final_v]"
-        )
-    else:
-        filter_parts.append("[base_v]null[final_v]")
+    split_count = 1 + (1 if zoom_cues else 0) + (1 if shake_cues else 0)
+    current_v = "[base_v]"
 
-    # 3. Audio Filter Complex: adelay and amix
+    if split_count > 1:
+        split_labels = [f"[v_branch_{i}]" for i in range(split_count)]
+        filter_parts.append(f"[base_v]split={split_count}{''.join(split_labels)}")
+        current_v = split_labels[0]
+        branch_idx = 1
+
+        # A. Apply Punch Zoom if any
+        if zoom_cues:
+            z_branch = split_labels[branch_idx]
+            branch_idx += 1
+            z_enables = [
+                f"between(t\\,{zc['time']:.2f}\\,{min(duration, zc['time'] + zc['zoom_duration']):.2f})"
+                for zc in zoom_cues
+            ]
+            z_expr = "+".join(z_enables)
+            if aspect_ratio == '9:16':
+                filter_parts.append(f"{z_branch}crop=in_w*0.78:in_h*0.78:(in_w-out_w)/2:(in_h-out_h)/2,scale=1080:1920[v_zoomed]")
+            else:
+                filter_parts.append(f"{z_branch}crop=in_w*0.78:in_h*0.78:(in_w-out_w)/2:(in_h-out_h)/2,scale=1920:1080[v_zoomed]")
+            filter_parts.append(f"{current_v}[v_zoomed]overlay=0:0:enable={z_expr}[v_after_zoom]")
+            current_v = "[v_after_zoom]"
+
+        # B. Apply Screen Shake if any
+        if shake_cues:
+            s_branch = split_labels[branch_idx]
+            branch_idx += 1
+            s_enables = [
+                f"between(t\\,{sc['time']:.2f}\\,{min(duration, sc['time'] + min(0.5, sc['zoom_duration'])):.2f})"
+                for sc in shake_cues
+            ]
+            s_expr = "+".join(s_enables)
+            if aspect_ratio == '9:16':
+                filter_parts.append(f"{s_branch}crop=w=1040:h=1880:x='20+20*sin(t*65)':y='20+20*cos(t*65)',scale=1080:1920[v_shaken]")
+            else:
+                filter_parts.append(f"{s_branch}crop=w=1860:h=1040:x='30+25*sin(t*65)':y='20+20*cos(t*65)',scale=1920:1080[v_shaken]")
+            filter_parts.append(f"{current_v}[v_shaken]overlay=0:0:enable={s_expr}[v_after_shake]")
+            current_v = "[v_after_shake]"
+
+    filter_parts.append(f"{current_v}null[final_v]")
+
+    # 3. Audio Multi-Channel SFX Mixing
     audio_mix_inputs = []
     base_audio_label = "[0:a]" if has_audio else f"[{silent_input_idx}:a]"
     audio_mix_inputs.append("[base_a]")
     filter_parts.append(f"{base_audio_label}volume=1.0[base_a]")
 
     if sound_inputs and valid_cues:
-        # Count occurrences of each sound input to build asplit if needed
         sound_usage = {}
         for c in valid_cues:
             inp_idx = unique_sounds.get(c['sound_path'])
             if inp_idx:
                 sound_usage[inp_idx] = sound_usage.get(inp_idx, 0) + 1
 
-        # Build split branches for sounds used multiple times
         split_branches = {}
         for inp_idx, count in sound_usage.items():
             if count > 1:
@@ -211,7 +252,6 @@ def edit_video_with_memes(
             else:
                 split_branches[inp_idx] = [f"[{inp_idx}:a]"]
 
-        # Apply adelay and volume to each cue instance
         cue_branches_tracker = {}
         for idx, cue in enumerate(valid_cues):
             inp_idx = unique_sounds.get(cue['sound_path'])
@@ -230,7 +270,6 @@ def edit_video_with_memes(
             )
             audio_mix_inputs.append(out_label)
 
-    # Combine audio tracks
     if len(audio_mix_inputs) > 1:
         total_inputs = len(audio_mix_inputs)
         filter_parts.append(
@@ -269,11 +308,13 @@ def edit_video_with_memes(
             'success': True,
             'output_file': output_file,
             'aspect_ratio': aspect_ratio,
+            'intensity': intensity,
             'start_time': start_sec,
             'end_time': end_sec,
             'duration': round(duration, 2),
             'meme_count': len(valid_cues),
             'punch_zooms': len(zoom_cues),
+            'screen_shakes': len(shake_cues),
             'cues_applied': valid_cues,
             'file_size_bytes': file_size,
             'file_size_mb': round(file_size / (1024 * 1024), 2)
@@ -290,7 +331,7 @@ def edit_video_with_memes(
         sys.exit(1)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Render video clip with dynamic punch-zoom memes and synchronized SFX')
+    parser = argparse.ArgumentParser(description='Render video clip with dynamic punch-zoom, screen shake and meme soundboard')
     parser.add_argument('--input-video', required=True, help='Path to source video file')
     parser.add_argument('--start', required=False, type=float, default=0.0, help='Start time in seconds')
     parser.add_argument('--end', required=True, type=float, help='End time in seconds')
@@ -298,6 +339,7 @@ if __name__ == '__main__':
     parser.add_argument('--aspect-ratio', default='9:16', choices=['9:16', '16:9', '1:1'], help='Output aspect ratio')
     parser.add_argument('--meme-timeline', required=False, default=None, help='JSON array or filepath of meme cues')
     parser.add_argument('--sfx-dir', required=False, default=None, help='Directory containing SFX wav files')
+    parser.add_argument('--intensity', default='rame', choices=['santai', 'rame', 'barbar'], help='Meme density level')
     args = parser.parse_args()
 
     edit_video_with_memes(
@@ -307,5 +349,6 @@ if __name__ == '__main__':
         args.output,
         args.aspect_ratio,
         args.meme_timeline,
-        args.sfx_dir
+        args.sfx_dir,
+        args.intensity
     )
