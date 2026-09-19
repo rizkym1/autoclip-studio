@@ -104,10 +104,16 @@ For each clip:
 7. "discussion_question": Engaging question based on this clip.
 8. "hashtags": 4-6 hashtags tailored to the topic.
 
-9. "meme_cues": Array of 3 to 6 viral meme sound effect & dynamic camera cues spaced throughout the clip (every ~4-7 seconds).
-Available effects: "vine_boom", "metal_pipe", "taco_bell", "bonk", "bruh", "emotional_damage", "windows_error", "fart_reverb", "huh", "run", "laugh_wheeze", "cricket", "anime_wow", "directed_by".
+9. "meme_cues": Array of 1 to 3 HIGH-PRECISION viral meme cues ONLY at genuine comedic moments.
+CRITICAL COMEDIC EDITING RULES:
+- Comedic timing must be 100% natural and never cringe. Quality and exact timing are far more important than quantity.
+- ONLY place a meme cue when there is an actual punchline, an epic fail/blunder, a savage roast ("emotional_damage"), a moment of brain lag ("windows_error" / "huh"), an awkward silence ("cricket" / "bruh"), or a funny outro ("directed_by").
+- NEVER place a meme sound while someone is in the middle of a sentence or explaining something serious.
+- "time" MUST be the exact relative second (e.g. 14.2) right where the funny word lands or immediately after the punchline.
+- If there is only 1 punchline in the whole clip, return ONLY 1 cue! If the clip is educational or not funny, return an empty array [].
+- Available effects: "vine_boom", "metal_pipe", "taco_bell", "bonk", "bruh", "emotional_damage", "windows_error", "fart_reverb", "huh", "run", "laugh_wheeze", "cricket", "anime_wow", "directed_by", "oof".
 Each cue has:
-- "time": relative offset in seconds from start_time (e.g. 2.5)
+- "time": relative offset in seconds from start_time (e.g. 14.2)
 - "effect": sound effect name
 - "punch_zoom": boolean
 - "screen_shake": boolean (set true on big shock / metal pipe / bass drop)

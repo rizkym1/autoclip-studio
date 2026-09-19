@@ -15,4 +15,5 @@ Route::delete('/api/projects/{id}', [VideoClipController::class, 'destroy'])->na
 // Clip Rendering APIs
 Route::post('/api/clips/{id}/render', [VideoClipController::class, 'renderClip'])->name('clips.render');
 Route::post('/api/clips/{id}/render-meme', [VideoClipController::class, 'renderMemeClip'])->name('clips.render_meme');
+Route::put('/api/clips/{id}/cues', [VideoClipController::class, 'updateMemeCues'])->name('clips.update_cues');
 Route::post('/api/projects/{id}/custom-clip', [VideoClipController::class, 'createCustomClip'])->name('clips.custom');

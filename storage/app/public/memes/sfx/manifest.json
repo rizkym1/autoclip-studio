@@ -1,0 +1,107 @@
+{
+  "vine_boom": {
+    "name": "Vine Boom (Shock & Bass Thud)",
+    "filename": "vine_boom.wav",
+    "tag": "punchline",
+    "duration": 1.8,
+    "url": "/storage/memes/sfx/vine_boom.wav"
+  },
+  "metal_pipe": {
+    "name": "Metal Pipe Falling (Clang)",
+    "filename": "metal_pipe.wav",
+    "tag": "blunder",
+    "duration": 2.2,
+    "url": "/storage/memes/sfx/metal_pipe.wav"
+  },
+  "taco_bell": {
+    "name": "Taco Bell Bong (Bronze Bell)",
+    "filename": "taco_bell.wav",
+    "tag": "fail",
+    "duration": 2.4,
+    "url": "/storage/memes/sfx/taco_bell.wav"
+  },
+  "bonk": {
+    "name": "Cartoon Bonk",
+    "filename": "bonk.wav",
+    "tag": "fail",
+    "duration": 0.45,
+    "url": "/storage/memes/sfx/bonk.wav"
+  },
+  "bruh": {
+    "name": "Deep Bruh Sound",
+    "filename": "bruh.wav",
+    "tag": "blunder",
+    "duration": 1.1,
+    "url": "/storage/memes/sfx/bruh.wav"
+  },
+  "emotional_damage": {
+    "name": "Emotional Damage Stab",
+    "filename": "emotional_damage.wav",
+    "tag": "blunder",
+    "duration": 1.4,
+    "url": "/storage/memes/sfx/emotional_damage.wav"
+  },
+  "windows_error": {
+    "name": "Windows Error Ding",
+    "filename": "windows_error.wav",
+    "tag": "awkward",
+    "duration": 0.85,
+    "url": "/storage/memes/sfx/windows_error.wav"
+  },
+  "fart_reverb": {
+    "name": "Fart With Reverb",
+    "filename": "fart_reverb.wav",
+    "tag": "shitpost",
+    "duration": 1.9,
+    "url": "/storage/memes/sfx/fart_reverb.wav"
+  },
+  "huh": {
+    "name": "Huh? Question Cat",
+    "filename": "huh.wav",
+    "tag": "awkward",
+    "duration": 0.75,
+    "url": "/storage/memes/sfx/huh.wav"
+  },
+  "run": {
+    "name": "Run! Panic Bass Stabs",
+    "filename": "run.wav",
+    "tag": "hype",
+    "duration": 1.7,
+    "url": "/storage/memes/sfx/run.wav"
+  },
+  "laugh_wheeze": {
+    "name": "Wheeze Laugh",
+    "filename": "laugh_wheeze.wav",
+    "tag": "funny",
+    "duration": 1.8,
+    "url": "/storage/memes/sfx/laugh_wheeze.wav"
+  },
+  "cricket": {
+    "name": "Awkward Silence Cricket",
+    "filename": "cricket.wav",
+    "tag": "awkward",
+    "duration": 2.4,
+    "url": "/storage/memes/sfx/cricket.wav"
+  },
+  "anime_wow": {
+    "name": "Anime Wow & Chime",
+    "filename": "anime_wow.wav",
+    "tag": "epic",
+    "duration": 1.9,
+    "url": "/storage/memes/sfx/anime_wow.wav"
+  },
+  "directed_by": {
+    "name": "Directed by Weide Outro",
+    "filename": "directed_by.wav",
+    "tag": "outro",
+    "duration": 3.2,
+    "url": "/storage/memes/sfx/directed_by.wav"
+  },
+  "oof": {
+    "name": "Roblox Oof Death",
+    "filename": "oof.wav",
+    "tag": "fail",
+    "duration": 0.8,
+    "url": "/storage/memes/sfx/oof.wav"
+  }
+}

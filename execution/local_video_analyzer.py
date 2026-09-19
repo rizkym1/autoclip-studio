@@ -87,22 +87,22 @@ def detect_audio_meme_peaks(wav_path, duration):
         hype_idx = 0
         awkward_idx = 0
 
-        # Scan for peaks with minimum 2.5s separation
-        last_cue_time = 1.5
+        # Scan for peaks with minimum 6.0s separation to avoid audio clutter
+        last_cue_time = 2.0
         for idx in range(2, len(rms_values) - 2):
             t = idx * step
-            if t < 3.0 or t > (duration - 2.0):
+            if t < 4.0 or t > (duration - 3.0):
                 continue
-            if (t - last_cue_time) < 2.5:
+            if (t - last_cue_time) < 6.0:
                 continue
 
             val = rms_values[idx]
             prev_val = rms_values[idx - 1]
             next_val = rms_values[idx + 1]
 
-            # Local maximum peak
+            # Genuine explosive peak (shout, killstreak, explosion)
             if val > prev_val and val > next_val:
-                if val > (avg_rms * 1.35):
+                if val > max(avg_rms * 2.2, 0.08):
                     # Heavy action peak -> Screen Shake + Punch Zoom
                     sound = heavy_hits[heavy_idx % len(heavy_hits)]
                     heavy_idx += 1
@@ -114,7 +114,7 @@ def detect_audio_meme_peaks(wav_path, duration):
                         'reason': f'Lonjakan aksi/audio heboh di {round(t, 1)}s'
                     })
                     last_cue_time = t
-                elif val > (avg_rms * 1.05):
+                elif val > max(avg_rms * 1.8, 0.05) and len(cues) < 2:
                     # Medium action peak
                     sound = hype_sounds[hype_idx % len(hype_sounds)]
                     hype_idx += 1
@@ -127,8 +127,8 @@ def detect_audio_meme_peaks(wav_path, duration):
                     })
                     last_cue_time = t
 
-            # Awkward silence / sudden drop
-            elif val < (avg_rms * 0.35) and avg_rms > 0.02 and (t - last_cue_time) >= 3.5:
+            # Awkward silence / sudden drop (only if there was heavy dialogue before)
+            elif val < (avg_rms * 0.25) and avg_rms > 0.04 and (t - last_cue_time) >= 8.0 and len(cues) < 2:
                 sound = awkward_sounds[awkward_idx % len(awkward_sounds)]
                 awkward_idx += 1
                 cues.append({

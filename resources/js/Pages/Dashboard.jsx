@@ -35,9 +35,31 @@ import {
     FileVideo,
     Mic,
     X,
-    Radio
+    Radio,
+    Volume2,
+    VolumeX,
+    Plus,
+    Edit3
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+const AVAILABLE_MEME_SFX = [
+    { id: 'vine_boom', name: 'Vine Boom 💥', icon: '💥', desc: 'Shockwave punchline' },
+    { id: 'metal_pipe', name: 'Metal Pipe Clang 🛢️', icon: '🛢️', desc: 'Pipa besi jatuh viral' },
+    { id: 'taco_bell', name: 'Taco Bell Bong 🔔', icon: '🔔', desc: 'Lonceng karma' },
+    { id: 'bonk', name: 'Cartoon Bonk 🔨', icon: '🔨', desc: 'Pukulan kartun' },
+    { id: 'bruh', name: 'Bruh Sound 🗿', icon: '🗿', desc: 'Cringe / pasrah' },
+    { id: 'emotional_damage', name: 'Emotional Damage 💔', icon: '💔', desc: 'Roasting pedas' },
+    { id: 'windows_error', name: 'Windows Error 💻', icon: '💻', desc: 'Otak nge-lag' },
+    { id: 'fart_reverb', name: 'Fart Reverb 💨', icon: '💨', desc: 'Bass boosted reverb' },
+    { id: 'huh', name: 'Huh? ❓', icon: '❓', desc: 'Kebingungan' },
+    { id: 'run', name: 'Run! EDM Drop 🏃', icon: '🏃', desc: 'Panik dikejar' },
+    { id: 'laugh_wheeze', name: 'Wheeze Laugh 🤣', icon: '🤣', desc: 'Ketawa ngakak' },
+    { id: 'cricket', name: 'Cricket Chirp 🦗', icon: '🦗', desc: 'Keheningan canggung' },
+    { id: 'anime_wow', name: 'Anime Wow ✨', icon: '✨', desc: 'Kemilau fairy' },
+    { id: 'directed_by', name: 'Directed by Weide 🎬', icon: '🎬', desc: 'Outro blunder' },
+    { id: 'oof', name: 'Roblox Oof 💀', icon: '💀', desc: 'Roblox death oof' },
+];
 
 export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
     const [inputMode, setInputMode] = useState('url'); // 'url' | 'upload'
@@ -67,6 +89,127 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
     const [renderingClipIds, setRenderingClipIds] = useState(new Set());
     const [renderingMemeClipIds, setRenderingMemeClipIds] = useState(new Set());
     const [clipMemeIntensity, setClipMemeIntensity] = useState({}); // { [clipId]: 'santai' | 'rame' | 'barbar' }
+
+    // Interactive Meme Cue Editor States
+    const [editingClipCues, setEditingClipCues] = useState({}); // { [clipId]: boolean }
+    const [clipCustomCues, setClipCustomCues] = useState({}); // { [clipId]: Array }
+    const [activeAudioPreview, setActiveAudioPreview] = useState(null);
+    const [playingSoundId, setPlayingSoundId] = useState(null);
+    const [isSavingCues, setIsSavingCues] = useState(false);
+
+    // Audio Preview for Meme SFX
+    const playSoundPreview = (effectName) => {
+        try {
+            if (activeAudioPreview) {
+                activeAudioPreview.pause();
+                activeAudioPreview.currentTime = 0;
+            }
+            if (playingSoundId === effectName) {
+                setPlayingSoundId(null);
+                setActiveAudioPreview(null);
+                return;
+            }
+            const audio = new Audio(`/storage/memes/sfx/${effectName}.mp3`);
+            audio.volume = 0.85;
+            audio.play().catch(e => console.warn('Preview error:', e));
+            setActiveAudioPreview(audio);
+            setPlayingSoundId(effectName);
+            audio.onended = () => {
+                setPlayingSoundId(null);
+                setActiveAudioPreview(null);
+            };
+        } catch (err) {
+            console.error('Audio preview exception:', err);
+        }
+    };
+
+    const toggleEditMemeCues = (clip) => {
+        setEditingClipCues(prev => {
+            const isOpen = !prev[clip.id];
+            if (isOpen && clipCustomCues[clip.id] === undefined) {
+                setClipCustomCues(c => ({
+                    ...c,
+                    [clip.id]: clip.meme_cues && clip.meme_cues.length > 0 ? JSON.parse(JSON.stringify(clip.meme_cues)) : []
+                }));
+            }
+            return { ...prev, [clip.id]: isOpen };
+        });
+    };
+
+    const updateCueField = (clipId, index, field, value) => {
+        setClipCustomCues(prev => {
+            const list = [...(prev[clipId] || [])];
+            if (list[index]) {
+                list[index] = { ...list[index], [field]: value };
+            }
+            return { ...prev, [clipId]: list };
+        });
+    };
+
+    const addCueToClip = (clip) => {
+        const defaultTime = Math.round(Math.min(clip.duration - 0.5, Math.max(0.5, currentTime)) * 10) / 10;
+        setClipCustomCues(prev => {
+            const currentList = prev[clip.id] !== undefined ? prev[clip.id] : (clip.meme_cues ? JSON.parse(JSON.stringify(clip.meme_cues)) : []);
+            return {
+                ...prev,
+                [clip.id]: [
+                    ...currentList,
+                    {
+                        time: defaultTime,
+                        effect: 'vine_boom',
+                        punch_zoom: true,
+                        screen_shake: true,
+                        reason: `Meme di detik ${defaultTime}s`
+                    }
+                ].sort((a, b) => (Number(a.time) || 0) - (Number(b.time) || 0))
+            };
+        });
+    };
+
+    const removeCueFromClip = (clipId, index) => {
+        setClipCustomCues(prev => {
+            const list = [...(prev[clipId] || [])];
+            list.splice(index, 1);
+            return { ...prev, [clipId]: list };
+        });
+    };
+
+    const clearAllCuesFromClip = (clipId) => {
+        setClipCustomCues(prev => ({
+            ...prev,
+            [clipId]: []
+        }));
+    };
+
+    const saveClipMemeCues = async (clipId) => {
+        setIsSavingCues(true);
+        const cuesToSave = clipCustomCues[clipId] || [];
+        try {
+            const res = await fetch(`/api/clips/${clipId}/cues`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ cues: cuesToSave })
+            });
+            const data = await res.json();
+            if (data.success && data.clip) {
+                setCurrentProject(prev => ({
+                    ...prev,
+                    clips: (prev?.clips || []).map(c => c.id === clipId ? data.clip : c)
+                }));
+                showToast(`✅ ${cuesToSave.length} Meme cue berhasil disimpan!`, 'success');
+            } else {
+                showToast('Gagal menyimpan meme cues: ' + (data.error || 'Server error'), 'error');
+            }
+        } catch (err) {
+            console.error('Save cues error:', err);
+            showToast('Koneksi gagal saat menyimpan cues', 'error');
+        } finally {
+            setIsSavingCues(false);
+        }
+    };
 
     // Video Player Ref
     const videoRef = useRef(null);
@@ -368,16 +511,20 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
         setRenderingMemeClipIds(prev => new Set(prev).add(clipId));
         showToast(`Injecting memes (${intensityLabels[intensity] || intensity}), SFX & screen shake (${ratio})... ✨`, 'info');
         try {
+            const bodyPayload = { 
+                aspect_ratio: ratio,
+                intensity: intensity
+            };
+            if (clipCustomCues[clipId] !== undefined) {
+                bodyPayload.custom_cues = clipCustomCues[clipId];
+            }
             const res = await fetch(`/api/clips/${clipId}/render-meme`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ 
-                    aspect_ratio: ratio,
-                    intensity: intensity
-                })
+                body: JSON.stringify(bodyPayload)
             });
 
             let data;
@@ -1099,87 +1246,230 @@ export default function Dashboard({ recentProjects = [], hasApiKey = false }) {
                                                         )}
                                                     </div>
 
-                                                    {/* Auto-Meme & SFX Timeline Badges */}
-                                                    <div className="rounded-lg bg-gradient-to-r from-amber-500/10 via-amber-950/20 to-orange-500/10 border border-amber-500/30 p-2.5 flex flex-col gap-2">
+                                                    {/* Auto-Meme & SFX Timeline Section */}
+                                                    <div className="rounded-lg bg-gradient-to-r from-amber-500/10 via-amber-950/20 to-orange-500/10 border border-amber-500/30 p-3 flex flex-col gap-2.5">
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-1.5 text-xs text-amber-300 font-medium">
                                                                 <Flame className="w-3.5 h-3.5 text-amber-400" />
                                                                 <span>Auto-Meme Soundboard & Camera Sync ✨</span>
                                                             </div>
-                                                            <span className="text-[10px] text-amber-400/80 font-mono">
-                                                                {clip.meme_cues && clip.meme_cues.length > 0 ? `${clip.meme_cues.length} Cue Siap` : 'Auto Punch-Zoom & SFX'}
-                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-amber-400/80 font-mono">
+                                                                    {(clipCustomCues[clip.id] !== undefined ? clipCustomCues[clip.id] : (clip.meme_cues || [])).length} Cue Aktif
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleEditMemeCues(clip)}
+                                                                    className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-amber-100 text-[10px] font-medium border border-amber-500/40 flex items-center gap-1 transition cursor-pointer"
+                                                                >
+                                                                    <Sliders className="w-2.5 h-2.5" />
+                                                                    <span>{editingClipCues[clip.id] ? 'Tutup Editor' : 'Sesuaikan Detik & SFX 🎛️'}</span>
+                                                                </button>
+                                                            </div>
                                                         </div>
 
-                                                        {clip.meme_cues && clip.meme_cues.length > 0 ? (
-                                                            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                                                                {clip.meme_cues.map((cue, cueIdx) => {
-                                                                    const memeIcons = {
-                                                                        vine_boom: '💥',
-                                                                        metal_pipe: '🛢️',
-                                                                        taco_bell: '🔔',
-                                                                        bonk: '🔨',
-                                                                        bruh: '🗿',
-                                                                        emotional_damage: '💔',
-                                                                        windows_error: '💻',
-                                                                        fart_reverb: '💨',
-                                                                        huh: '❓',
-                                                                        run: '🏃',
-                                                                        laugh_wheeze: '🤣',
-                                                                        cricket: '🦗',
-                                                                        anime_wow: '✨',
-                                                                        directed_by: '🎬'
-                                                                    };
-                                                                    const icon = memeIcons[cue.effect] || '🎬';
-                                                                    return (
-                                                                        <span 
-                                                                            key={cueIdx} 
-                                                                            title={cue.reason || cue.effect}
-                                                                            className="px-2 py-0.5 rounded bg-zinc-900/90 text-amber-200 text-[10px] font-mono border border-amber-500/40 flex items-center gap-1 shadow-sm"
+                                                        {/* EDITING MODE: INLINE CUE STUDIO */}
+                                                        {editingClipCues[clip.id] ? (
+                                                            <div className="space-y-2.5 pt-1 border-t border-amber-500/20">
+                                                                <div className="flex items-center justify-between text-[11px] text-amber-200/90 font-medium">
+                                                                    <span>Atur Detik, Suara & Efek Kamera:</span>
+                                                                    <span className="text-[10px] text-zinc-400 font-sans">Durasi klip: {Math.round(clip.duration)}s</span>
+                                                                </div>
+
+                                                                {/* List of Cues */}
+                                                                {((clipCustomCues[clip.id] !== undefined ? clipCustomCues[clip.id] : (clip.meme_cues || []))).length > 0 ? (
+                                                                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                                                        {((clipCustomCues[clip.id] !== undefined ? clipCustomCues[clip.id] : (clip.meme_cues || []))).map((cue, cueIdx) => (
+                                                                            <div 
+                                                                                key={cueIdx}
+                                                                                className="p-2 rounded-lg bg-zinc-900/90 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm"
+                                                                            >
+                                                                                {/* Left: Sound Selector & Audio Preview */}
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => playSoundPreview(cue.effect)}
+                                                                                        title="Dengarkan suara asli"
+                                                                                        className={`w-7 h-7 rounded-md flex items-center justify-center transition cursor-pointer shrink-0 shadow ${
+                                                                                            playingSoundId === cue.effect
+                                                                                                ? 'bg-amber-400 text-zinc-950 animate-pulse'
+                                                                                                : 'bg-amber-500 hover:bg-amber-400 text-zinc-950'
+                                                                                        }`}
+                                                                                    >
+                                                                                        {playingSoundId === cue.effect ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                                                                                    </button>
+
+                                                                                    <select
+                                                                                        value={cue.effect}
+                                                                                        onChange={(e) => updateCueField(clip.id, cueIdx, 'effect', e.target.value)}
+                                                                                        className="px-2 py-1 rounded bg-zinc-950 border border-zinc-700 text-zinc-100 text-xs font-sans focus:outline-none focus:border-amber-400"
+                                                                                    >
+                                                                                        {AVAILABLE_MEME_SFX.map(sfx => (
+                                                                                            <option key={sfx.id} value={sfx.id}>
+                                                                                                {sfx.name} — {sfx.desc}
+                                                                                            </option>
+                                                                                        ))}
+                                                                                    </select>
+                                                                                </div>
+
+                                                                                {/* Right: Timestamp & FX Checkboxes & Delete */}
+                                                                                <div className="flex items-center flex-wrap gap-2 justify-end">
+                                                                                    {/* Timestamp Input */}
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        <span className="text-[10px] text-zinc-400">Detik:</span>
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            step="0.1"
+                                                                                            min="0"
+                                                                                            max={clip.duration}
+                                                                                            value={cue.time}
+                                                                                            onChange={(e) => updateCueField(clip.id, cueIdx, 'time', parseFloat(e.target.value) || 0)}
+                                                                                            className="w-14 px-1 py-0.5 text-center font-mono text-xs rounded bg-zinc-950 border border-zinc-700 text-amber-300"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            title="Isi dengan detik video yang sedang diputar"
+                                                                                            onClick={() => updateCueField(clip.id, cueIdx, 'time', Math.round(Math.min(clip.duration, Math.max(0, currentTime)) * 10) / 10)}
+                                                                                            className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] text-amber-200 border border-zinc-700 font-mono transition cursor-pointer"
+                                                                                        >
+                                                                                            ⏱️ Ambil Detik ({Math.round(currentTime * 10) / 10}s)
+                                                                                        </button>
+                                                                                    </div>
+
+                                                                                    {/* Toggles */}
+                                                                                    <label className="flex items-center gap-1 text-[11px] text-zinc-300 cursor-pointer select-none">
+                                                                                        <input
+                                                                                            type="checkbox"
+                                                                                            checked={!!cue.punch_zoom}
+                                                                                            onChange={(e) => updateCueField(clip.id, cueIdx, 'punch_zoom', e.target.checked)}
+                                                                                            className="rounded border-zinc-700 text-amber-500 focus:ring-0 w-3 h-3"
+                                                                                        />
+                                                                                        <span>🔍 Zoom</span>
+                                                                                    </label>
+
+                                                                                    <label className="flex items-center gap-1 text-[11px] text-zinc-300 cursor-pointer select-none">
+                                                                                        <input
+                                                                                            type="checkbox"
+                                                                                            checked={!!cue.screen_shake}
+                                                                                            onChange={(e) => updateCueField(clip.id, cueIdx, 'screen_shake', e.target.checked)}
+                                                                                            className="rounded border-zinc-700 text-amber-500 focus:ring-0 w-3 h-3"
+                                                                                        />
+                                                                                        <span>📳 Shake</span>
+                                                                                    </label>
+
+                                                                                    {/* Remove */}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => removeCueFromClip(clip.id, cueIdx)}
+                                                                                        className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                                                                                        title="Hapus cue ini"
+                                                                                    >
+                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+                                                                        Belum ada meme cue pada klip ini. Klik tombol di bawah untuk menambahkan cue pada momen lucu!
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Editor Actions Toolbar */}
+                                                                <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => addCueToClip(clip)}
+                                                                            className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-xs font-medium border border-zinc-700 flex items-center gap-1 transition cursor-pointer"
                                                                         >
-                                                                            <span>{icon}</span>
-                                                                            <span className="capitalize">{cue.effect.replace('_', ' ')}</span>
-                                                                            <span className="text-zinc-400 font-sans">@{cue.time}s</span>
-                                                                            {cue.punch_zoom && <span className="text-[9px] text-amber-400 font-bold">🔍 Zoom</span>}
-                                                                            {cue.screen_shake && <span className="text-[9px] text-orange-400 font-bold">📳 Shake</span>}
-                                                                        </span>
-                                                                    );
-                                                                })}
+                                                                            <Plus className="w-3 h-3" />
+                                                                            <span>Tambah Meme Cue</span>
+                                                                        </button>
+                                                                        {((clipCustomCues[clip.id] !== undefined ? clipCustomCues[clip.id] : (clip.meme_cues || []))).length > 0 && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => clearAllCuesFromClip(clip.id)}
+                                                                                className="px-2 py-1 rounded text-xs text-zinc-500 hover:text-red-400 transition cursor-pointer"
+                                                                            >
+                                                                                Hapus Semua
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={isSavingCues}
+                                                                            onClick={() => saveClipMemeCues(clip.id)}
+                                                                            className="px-3 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-semibold shadow-sm flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                                                                        >
+                                                                            {isSavingCues ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                                            <span>Simpan Cues</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         ) : (
-                                                            <p className="text-[11px] text-zinc-400 font-sans">
-                                                                Efek suara meme viral, punch zoom & screen shake kamera otomatis tersinkronisasi saat dirender.
-                                                            </p>
-                                                        )}
+                                                            /* READ-ONLY BADGES MODE */
+                                                            <>
+                                                                {((clipCustomCues[clip.id] !== undefined ? clipCustomCues[clip.id] : (clip.meme_cues || []))).length > 0 ? (
+                                                                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                                                        {((clipCustomCues[clip.id] !== undefined ? clipCustomCues[clip.id] : (clip.meme_cues || []))).map((cue, cueIdx) => {
+                                                                            const item = AVAILABLE_MEME_SFX.find(s => s.id === cue.effect);
+                                                                            const icon = item ? item.icon : '🎬';
+                                                                            return (
+                                                                                <span 
+                                                                                    key={cueIdx} 
+                                                                                    title={cue.reason || cue.effect}
+                                                                                    className="px-2 py-0.5 rounded bg-zinc-900/90 text-amber-200 text-[10px] font-mono border border-amber-500/40 flex items-center gap-1 shadow-sm"
+                                                                                >
+                                                                                    <span>{icon}</span>
+                                                                                    <span className="capitalize">{cue.effect.replace('_', ' ')}</span>
+                                                                                    <span className="text-zinc-400 font-sans">@{cue.time}s</span>
+                                                                                    {cue.punch_zoom && <span className="text-[9px] text-amber-400 font-bold">🔍 Zoom</span>}
+                                                                                    {cue.screen_shake && <span className="text-[9px] text-orange-400 font-bold">📳 Shake</span>}
+                                                                                </span>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-[11px] text-zinc-400 font-sans">
+                                                                        Klip bersih tanpa efek meme. Klik tombol "Sesuaikan Detik & SFX" di atas jika ingin menambahkan suara meme di punchline tertentu.
+                                                                    </p>
+                                                                )}
 
-                                                        {/* Meme Intensity Presets */}
-                                                        <div className="flex items-center justify-between pt-1.5 border-t border-amber-500/20 text-xs">
-                                                            <span className="text-[11px] text-amber-200/90 font-medium">Level Keramaian:</span>
-                                                            <div className="inline-flex rounded-lg bg-zinc-900/90 p-0.5 border border-zinc-800">
-                                                                {[
-                                                                    { id: 'santai', label: 'Santai ☕', hint: '2 Meme (Hook & Outro)' },
-                                                                    { id: 'rame', label: 'Rame 🔥', hint: '4-6 Meme (Hype Multi-Drop)' },
-                                                                    { id: 'barbar', label: 'Bar-Bar 🤯', hint: '7-10 Meme + Heavy Shake' }
-                                                                ].map(preset => {
-                                                                    const isSelected = (clipMemeIntensity[clip.id] || 'rame') === preset.id;
-                                                                    return (
-                                                                        <button
-                                                                            key={preset.id}
-                                                                            type="button"
-                                                                            title={preset.hint}
-                                                                            onClick={() => setClipMemeIntensity(prev => ({ ...prev, [clip.id]: preset.id }))}
-                                                                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
-                                                                                isSelected 
-                                                                                    ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm' 
-                                                                                    : 'text-zinc-400 hover:text-zinc-200'
-                                                                            }`}
-                                                                        >
-                                                                            {preset.label}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
+                                                                {/* Meme Intensity Presets */}
+                                                                <div className="flex items-center justify-between pt-1.5 border-t border-amber-500/20 text-xs">
+                                                                    <span className="text-[11px] text-amber-200/90 font-medium">Level Keramaian:</span>
+                                                                    <div className="inline-flex rounded-lg bg-zinc-900/90 p-0.5 border border-zinc-800">
+                                                                        {[
+                                                                            { id: 'santai', label: 'Santai ☕', hint: '2 Meme (Hook & Outro)' },
+                                                                            { id: 'rame', label: 'Rame 🔥', hint: 'Multi-Drop Hype' },
+                                                                            { id: 'barbar', label: 'Bar-Bar 🤯', hint: 'Chaos & Shake' }
+                                                                        ].map(preset => {
+                                                                            const isSelected = (clipMemeIntensity[clip.id] || 'rame') === preset.id;
+                                                                            return (
+                                                                                <button
+                                                                                    key={preset.id}
+                                                                                    type="button"
+                                                                                    title={preset.hint}
+                                                                                    onClick={() => setClipMemeIntensity(prev => ({ ...prev, [clip.id]: preset.id }))}
+                                                                                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                                                                                        isSelected 
+                                                                                            ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm' 
+                                                                                            : 'text-zinc-400 hover:text-zinc-200'
+                                                                                    }`}
+                                                                                >
+                                                                                    {preset.label}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
 
                                                     {/* Card Actions */}

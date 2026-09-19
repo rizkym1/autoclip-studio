@@ -201,6 +201,24 @@ class VideoClipController extends Controller
     }
 
     /**
+     * Update meme cues for a clip manually
+     */
+    public function updateMemeCues(Request $request, int $clipId)
+    {
+        $request->validate([
+            'cues' => 'present|array',
+        ]);
+
+        $clip = VideoClip::findOrFail($clipId);
+        $clip->update(['meme_cues' => $request->input('cues', [])]);
+
+        return response()->json([
+            'success' => true,
+            'clip' => $clip->fresh()
+        ]);
+    }
+
+    /**
      * Create and render a custom/manual clip
      */
     public function createCustomClip(Request $request, int $projectId, VideoProcessorService $service)
