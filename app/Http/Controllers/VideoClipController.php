@@ -67,12 +67,25 @@ class VideoClipController extends Controller
         @ini_set('max_execution_time', '300');
 
         $request->validate([
-            'video_file' => 'required|file|mimes:mp4,mov,webm,mkv,avi|max:524288',
+            'video_file' => 'required|file|max:524288',
             'channel_name' => 'nullable|string|max:100',
             'custom_title' => 'nullable|string|max:150',
+        ], [
+            'video_file.required' => 'File video wajib dipilih.',
+            'video_file.file' => 'File video tidak valid atau melebihi batas upload server.',
+            'video_file.max' => 'Ukuran file video maksimal 500MB.',
+            'video_file.uploaded' => 'File video gagal diunggah. Pastikan ukuran file tidak melebihi batas 500MB.',
         ]);
 
         $file = $request->file('video_file');
+        $rawExt = strtolower($file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION) ?: 'mp4');
+        $validExts = ['mp4', 'mov', 'webm', 'mkv', 'avi'];
+        if (!in_array($rawExt, $validExts)) {
+            return response()->json([
+                'success' => false,
+                'error' => "Format file '.{$rawExt}' tidak didukung. Harap gunakan video MP4, MOV, WebM, MKV, atau AVI."
+            ], 422);
+        }
         $originalName = $file->getClientOriginalName();
         $userTitle = $request->input('custom_title');
         
